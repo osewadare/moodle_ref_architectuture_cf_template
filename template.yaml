@@ -6,17 +6,16 @@ Resources:
     Properties:
       HostedZoneConfig:
         Comment: Registers moodle practice domain on Route53 for routing
-      Name: www.moodlepractice235.com
+      Name: www.moodlepractice235.com.
     Metadata:
       'AWS::CloudFormation::Designer':
         id: ec1122fa-35cf-4a83-b67a-83601add24ca
+
   BasicRoute53RecordSet:
     Type: 'AWS::Route53::RecordSet'
     Properties:
-      Name: www.moodlepractice.com
-      HostedZoneId: !GetAtt 
-        - BasicRoute53HostedZone
-        - ID
+      Name: www.moodlepractice235.com
+      HostedZoneId: !GetAtt BasicRoute53HostedZone.Id
       Type: A
       TTL: '300'
       ResourceRecords:
