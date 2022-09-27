@@ -125,7 +125,6 @@ Resources:
     Type: 'AWS::EFS::MountTarget'
     Properties:
       FileSystemId: !Ref EFSFileSystem
-      IpAddress: 192.1.1.1
       SecurityGroups:
         - !Ref EFSSecurityGroup
       SubnetId: !Ref VPCSubnet2
