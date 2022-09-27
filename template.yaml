@@ -1,18 +1,15 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Creates a stack of resources for the moodle reference architecture 
-
-Parameters:
-
- 
+Description: Creates a stack of resources for the moodle reference architecture
 Resources:
-
-# Route 53
-BasicRoute53HostedZone:
+  BasicRoute53HostedZone:
     Type: 'AWS::Route53::HostedZone'
     Properties:
-      HostedZone:
+      HostedZoneConfig:
         Comment: Registers moodle practice domain on Route53 for routing
-        Name: www.moodlepractice.com
+      Name: www.moodlepractice235.com
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: ec1122fa-35cf-4a83-b67a-83601add24ca
   BasicRoute53RecordSet:
     Type: 'AWS::Route53::RecordSet'
     Properties:
@@ -22,107 +19,88 @@ BasicRoute53HostedZone:
         - ID
       Type: A
       TTL: '300'
-      # Update the tagret Resource 
       ResourceRecords:
         - 192.0.2.99
-
-
-
-#VPC
-MainVPC:
-  Type: AWS::EC2::VPC
-  Properties: 
-    CidrBlock: 10.0.0.0/18
-    EnableDnsHostnames: "true"
-    EnableDnsSupport: "true"
-    Tags: 
-      - Tag
-
-  #Subnet
+    Metadata:
+      'AWS::CloudFormation::Designer':
+        id: a811f884-9170-4b6a-8d74-bc865241d967
+  MainVPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 10.0.0.0/18
+      EnableDnsHostnames: 'true'
+      EnableDnsSupport: 'true'
+      Tags:
+        - Key: Environment
+          Value: Test
   VPCSubnet1:
-    Type: AWS::EC2::Subnet
+    Type: 'AWS::EC2::Subnet'
     Properties:
       VpcId:
         Ref: MainVPC
       CidrBlock: 10.0.0.0/24
-      AvailabilityZone: "us-east-1a"
+      AvailabilityZone: us-east-2a
       Tags:
-      - Key: Environment
-        Value: Test
-
+        - Key: Environment
+          Value: Test
   VPCSubnet2:
-    Type: AWS::EC2::Subnet
+    Type: 'AWS::EC2::Subnet'
     Properties:
       VpcId:
         Ref: MainVPC
       CidrBlock: 10.0.1.0/24
-      AvailabilityZone: "us-east-1b"
+      AvailabilityZone: us-east-2b
       Tags:
-      - Key: Environment
-        Value: Test
-
-
-  # Security Group
+        - Key: Environment
+          Value: Test
   EC2SecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
       GroupDescription: custom security group for EC2 app servers
       GroupName: test-EC2-Resources
-      VpcId: !Ref VPC
-
-      #Ingress Rules
+      VpcId: !Ref MainVPC
       SecurityGroupIngress:
         - CidrIp: 0.0.0.0/0
-          Description: Ingress rules for EC2 app servers to allow connections from the internet on port 80
+          Description: >-
+            Ingress rules for EC2 app servers to allow connections from the
+            internet on port 80
           FromPort: 80
           IpProtocol: tcp
           ToPort: 80
       Tags:
         - Key: Environment
           Value: Test
-
-
   EFSSecurityGroup:
-  Type: 'AWS::EC2::SecurityGroup'
-  Properties:
-    GroupDescription: custom security group for EFS Mount Targets
-    GroupName: test-EFS-Resources
-    VpcId: !Ref VPC
-
-    #Ingress Rules
-    SecurityGroupIngress:
-      - CidrIp: 0.0.0.0/0
-        Description: Ingress rules for EFS Mount targets to allow connections from the the EC2 instances on port 2049
-        FromPort: 2049
-        IpProtocol: tcp
-        ToPort: 2049
-    Tags:
-      - Key: Environment
-        Value: Test
-
-  
-  # EC2 App Servers on  - Free tier eligble
-  EC2Instance1: 
-    Type: AWS::EC2::Instance
-    Properties: 
-      ImageId: "ami-0f924dc71d44d23e2"
-      KeyName: "testkey"
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: custom security group for EFS Mount Targets
+      GroupName: test-EFS-Resources
+      VpcId: !Ref MainVPC
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: >-
+            Ingress rules for EFS Mount targets to allow connections from the the
+            EC2 instances on port 2049
+          FromPort: 2049
+          IpProtocol: tcp
+          ToPort: 2049
+      Tags:
+        - Key: Environment
+          Value: Test
+  EC2Instance1:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-0f924dc71d44d23e2
       SubnetId: !Ref VPCSubnet1
       InstanceType: t2.micro
-      AvailabilityZone: "us-east-1a"
-
-
-  EC2Instance2: 
-    Type: AWS::EC2::Instance
-    Properties: 
-      ImageId: "ami-0f924dc71d44d23e2"
-      KeyName: "testkey"
+      AvailabilityZone: us-east-2a
+  EC2Instance2:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-0f924dc71d44d23e2
       SubnetId: !Ref VPCSubnet2
       InstanceType: t2.micro
-      AvailabilityZone: "us-east-1b"
-
-
-  # EFS 
+      AvailabilityZone: us-east-2b
   EFSFileSystem:
     Type: 'AWS::EFS::FileSystem'
     Properties:
@@ -136,9 +114,6 @@ MainVPC:
       FileSystemTags:
         - Key: Environment
           Value: test
-
-
-  # EFS Mount Targets
   MountTarget1:
     Type: 'AWS::EFS::MountTarget'
     Properties:
@@ -146,8 +121,6 @@ MainVPC:
       SecurityGroups:
         - !Ref EFSSecurityGroup
       SubnetId: !Ref VPCSubnet1
-
-
   MountTarget2:
     Type: 'AWS::EFS::MountTarget'
     Properties:
@@ -156,8 +129,6 @@ MainVPC:
       SecurityGroups:
         - !Ref EFSSecurityGroup
       SubnetId: !Ref VPCSubnet2
-
-      
 Outputs:
   EFS:
     Description: The created EFS
@@ -168,9 +139,4 @@ Outputs:
   EFSMountTarget2:
     Description: The EFS MountTarget2
     Value: !Ref MountTarget2
-  EFSMountTarget3:
-    Description: The EFS MountTarget3
-    Value: !Ref MountTarget3
-  EFSMountTarget4:
-    Description: The EFS MountTarget4
-    Value: !Ref MountTarget4
+
