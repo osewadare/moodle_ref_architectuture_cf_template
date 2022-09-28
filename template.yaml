@@ -1,5 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Creates a stack of resources for the moodle reference architecture
+
 Resources:
   BasicRoute53HostedZone:
     Type: 'AWS::Route53::HostedZone'
@@ -20,134 +21,8 @@ Resources:
       TTL: '300'
       ResourceRecords:
         - 192.0.2.99
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: a811f884-9170-4b6a-8d74-bc865241d967
-  MainVPC:
-    Type: 'AWS::EC2::VPC'
-    Properties:
-      CidrBlock: 10.0.0.0/18
-      EnableDnsHostnames: 'true'
-      EnableDnsSupport: 'true'
-      Tags:
-        - Key: Environment
-          Value: Test
-  VPCSubnet1:
-    Type: 'AWS::EC2::Subnet'
-    Properties:
-      VpcId:
-        Ref: MainVPC
-      CidrBlock: 10.0.0.0/24
-      AvailabilityZone: us-east-2a
-      Tags:
-        - Key: Environment
-          Value: Test
-  VPCSubnet2:
-    Type: 'AWS::EC2::Subnet'
-    Properties:
-      VpcId:
-        Ref: MainVPC
-      CidrBlock: 10.0.1.0/24
-      AvailabilityZone: us-east-2b
-      Tags:
-        - Key: Environment
-          Value: Test
-  EC2SecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
-    Properties:
-      GroupDescription: custom security group for EC2 app servers
-      GroupName: test-EC2-Resources
-      VpcId: !Ref MainVPC
-      SecurityGroupIngress:
-        - CidrIp: 0.0.0.0/0
-          Description: >-
-            Ingress rules for EC2 app servers to allow connections from the
-            internet on port 80
-          FromPort: 80
-          IpProtocol: tcp
-          ToPort: 80
-      Tags:
-        - Key: Environment
-          Value: Test
-  EFSSecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
-    Properties:
-      GroupDescription: custom security group for EFS Mount Targets
-      GroupName: test-EFS-Resources
-      VpcId: !Ref MainVPC
-      SecurityGroupIngress:
-        - CidrIp: 0.0.0.0/0
-          Description: >-
-            Ingress rules for EFS Mount targets to allow connections from the the
-            EC2 instances on port 2049
-          FromPort: 2049
-          IpProtocol: tcp
-          ToPort: 2049
-      Tags:
-        - Key: Environment
-          Value: Test
-  EC2Instance1:
-    Type: 'AWS::EC2::Instance'
-    Properties:
-      ImageId: ami-0f924dc71d44d23e2
-      SubnetId: !Ref VPCSubnet1
-      InstanceType: t2.micro
-      AvailabilityZone: us-east-2a
-  EC2Instance2:
-    Type: 'AWS::EC2::Instance'
-    Properties:
-      ImageId: ami-0f924dc71d44d23e2
-      SubnetId: !Ref VPCSubnet2
-      InstanceType: t2.micro
-      AvailabilityZone: us-east-2b
-  EFSFileSystem:
-    Type: 'AWS::EFS::FileSystem'
-    Properties:
-      BackupPolicy:
-        Status: DISABLED
-      Encrypted: true
-      LifecyclePolicies:
-        - TransitionToIA: AFTER_60_DAYS
-      PerformanceMode: generalPurpose
-      ThroughputMode: bursting
-      FileSystemTags:
-        - Key: Environment
-          Value: test
-  MountTarget1:
-    Type: 'AWS::EFS::MountTarget'
-    Properties:
-      FileSystemId: !Ref EFSFileSystem
-      SecurityGroups:
-        - !Ref EFSSecurityGroup
-      SubnetId: !Ref VPCSubnet1
-  MountTarget2:
-    Type: 'AWS::EFS::MountTarget'
-    Properties:
-      FileSystemId: !Ref EFSFileSystem
-      SecurityGroups:
-        - !Ref EFSSecurityGroup
-      SubnetId: !Ref VPCSubnet2
 
-
-  ApplicationLoadBalancer:
-    Type: AWS::ElasticLoadBalancerV2::LoadBalancer
-    Properties:
-      IpAddressType: ipv4
-      Name: MoodleApplicationLoadBalancer
-      Subnets: [!Ref VPCSubnet1.SubnetId, !Ref VPCSubnet2.SubnetId ]
-
-
-  InternetGateway:
-    Type: AWS::EC2::InternetGateway
-
-  VPCGatewayAttachment:
-    Type: AWS::EC2::VPCGatewayAttachment
-    Properties: 
-      VpcId: !Ref MainVPC.VpcId
-      InternetGatewayId: !Ref InternetGateway.InternetGatewayId
-  
-  # Cloud front distribution with Application Load balancer origin
-  CloudFrontDistribution:
+   CloudFrontDistribution:
     Type: AWS:CloudFront::Distribution
     Properties:
       DistributonConfig: 
@@ -178,14 +53,151 @@ Resources:
       DomainName: www.moodlepractice235.com
       ValidationMethod: DNS
 
-Outputs:
-  EFS:
-    Description: The created EFS
-    Value: !Ref EFSFileSystem
-  EFSMountTarget1:
-    Description: The EFS MountTarget1
-    Value: !Ref MountTarget1
-  EFSMountTarget2:
-    Description: The EFS MountTarget2
-    Value: !Ref MountTarget2
+  MainVPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 10.0.0.0/18
+      EnableDnsHostnames: 'true'
+      EnableDnsSupport: 'true'
+      Tags:
+        - Key: Environment
+          Value: Test
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: 
+      VpcId: !Ref MainVPC.VpcId
+      InternetGatewayId: !Ref InternetGateway.InternetGatewayId
+
+  RouteTable:
+    Type: AWS:EC2:RouteTable
+    Properties: 
+      VpcId: !Ref MainVPC
+
+  Route:
+    Type: AWS:EC2:Route
+    Properties: 
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancerV2::LoadBalancer
+    Properties:
+      IpAddressType: ipv4
+      Name: MoodleApplicationLoadBalancer
+      Subnets: [!Ref VPCSubnet1.SubnetId, !Ref VPCSubnet2.SubnetId ]
+
+  VPCSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: MainVPC
+      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: us-east-2a
+      Tags:
+        - Key: Environment
+          Value: Test
+  VPCSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId:
+        Ref: MainVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: us-east-2b
+      Tags:
+        - Key: Environment
+          Value: Test
+
+  EC2SecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: custom security group for EC2 app servers
+      GroupName: test-EC2-Resources
+      VpcId: !Ref MainVPC
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: >-
+            Ingress rules for EC2 app servers to allow connections from the
+            internet on port 80
+          FromPort: 80
+          IpProtocol: tcp
+          ToPort: 80
+      Tags:
+        - Key: Environment
+          Value: Test
+
+  EFSSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: custom security group for EFS Mount Targets
+      GroupName: test-EFS-Resources
+      VpcId: !Ref MainVPC
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: >-
+            Ingress rules for EFS Mount targets to allow connections from the the
+            EC2 instances on port 2049
+          FromPort: 2049
+          IpProtocol: tcp
+          ToPort: 2049
+      Tags:
+        - Key: Environment
+          Value: Test
+
+  EC2Instance1:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-0f924dc71d44d23e2
+      SubnetId: !Ref VPCSubnet1
+      InstanceType: t2.micro
+      AvailabilityZone: us-east-2a
+  EC2Instance2:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-0f924dc71d44d23e2
+      SubnetId: !Ref VPCSubnet2
+      InstanceType: t2.micro
+      AvailabilityZone: us-east-2b
+
+
+  EFSFileSystem:
+    Type: 'AWS::EFS::FileSystem'
+    Properties:
+      BackupPolicy:
+        Status: DISABLED
+      Encrypted: true
+      LifecyclePolicies:
+        - TransitionToIA: AFTER_60_DAYS
+      PerformanceMode: generalPurpose
+      ThroughputMode: bursting
+      FileSystemTags:
+        - Key: Environment
+          Value: test
+  MountTarget1:
+    Type: 'AWS::EFS::MountTarget'
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+      SubnetId: !Ref VPCSubnet1
+  MountTarget2:
+    Type: 'AWS::EFS::MountTarget'
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+      SubnetId: !Ref VPCSubnet2
+
+
+
+
+
+ 
+  
+
+  
 
