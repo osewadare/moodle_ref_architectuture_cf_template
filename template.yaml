@@ -127,6 +127,42 @@ Resources:
       SecurityGroups:
         - !Ref EFSSecurityGroup
       SubnetId: !Ref VPCSubnet2
+
+
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancerV2::LoadBalancer
+    Properties:
+      IpAddressType: ipv4
+      Name: MoodleApplicationLoadBalancer
+      Subnets: [!Ref VPCSubnet1.SubnetId, !Ref VPCSubnet2.SubnetId ]
+
+  
+  # Cloud front distribution with Application Load balancer origin
+  CloudFrontDistribution:
+    Type: AWS:CloudFront::Distribution
+    Properties:
+      DistributonConfig: 
+        Origins: 
+        - DomainName: www.moodlepractice235.com
+          Id: ApplicationLoadBalancer
+          CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginKeepaliveTimeout: 5 
+              OriginReadTimeout: 1
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols:
+                - TLSv1.2
+        Enabled: 'true'
+        DefaultCacheBehavior:
+          TargetOriginId: ApplicationLoadBalancer
+          ViewerProtocolPolicy: allow-all
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+        PriceClass: PriceClass_All
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: 'false'
+          AcmCertificateArn: acmcertificatearn
+
 Outputs:
   EFS:
     Description: The created EFS
