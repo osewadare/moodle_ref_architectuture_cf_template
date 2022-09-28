@@ -136,6 +136,15 @@ Resources:
       Name: MoodleApplicationLoadBalancer
       Subnets: [!Ref VPCSubnet1.SubnetId, !Ref VPCSubnet2.SubnetId ]
 
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: 
+      VpcId: !Ref MainVPC.VpcId
+      InternetGatewayId: !Ref InternetGateway.InternetGatewayId
   
   # Cloud front distribution with Application Load balancer origin
   CloudFrontDistribution:
@@ -161,7 +170,13 @@ Resources:
         PriceClass: PriceClass_All
         ViewerCertificate:
           CloudFrontDefaultCertificate: 'false'
-          AcmCertificateArn: acmcertificatearn
+          AcmCertificateArn: !Ref Certificate
+
+  Certificate: 
+    Type: "AWS::CertificateManager::Certificate"
+    Properties: 
+      DomainName: www.moodlepractice235.com
+      ValidationMethod: DNS
 
 Outputs:
   EFS:
